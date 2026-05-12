@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>排隊報名系統 - 等候區</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang HK', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 頭部 */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* 主要內容 */
+        .content {
+            padding: 32px 24px;
+        }
+
+        /* 籌號卡片 */
+        .ticket-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            border: 1px solid rgba(102,126,234,0.2);
+        }
+
+        .ticket-label {
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .ticket-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            font-family: monospace;
+            letter-spacing: 2px;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 排隊狀態 */
+        .status-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .position-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .position-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .position-label {
+            font-size: 14px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .waiting-info {
+            background: #f8f9fc;
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .waiting-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .waiting-row:last-child {
+            border-bottom: none;
+        }
+
+        .waiting-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .waiting-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 進度條 */
+        .progress-bar {
+            margin-top: 16px;
+        }
+
+        .progress-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        /* 狀態徽章 */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .status-waiting {
+            background: #fff3e0;
+            color: #ed8936;
+        }
+
+        .status-calling {
+            background: #e0f2fe;
+            color: #0284c7;
+            animation: pulse 1s infinite;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .status-expired {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 按鈕 */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 28px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* 提示訊息 */
+        .message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .message-info {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .message-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* 輔助文字 */
+        .footer-text {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        /* 載入動畫 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 隱藏元素 */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="header">
+            <h1>🎫 活動報名系統</h1>
+            <p>請耐心等候，輪到你時會自動跳轉</p>
+        </div>
+
+        <div class="content">
+            <!-- 未取籌號畫面 -->
+            <div id="joinScreen">
+                <div class="ticket-card">
+                    <div class="ticket-label">📋 活動資訊</div>
+                    <div style="margin: 16px 0; text-align: left;">
+                        <div class="waiting-row">
+                            <span class="waiting-label">總名額</span>
+                            <span class="waiting-value" id="totalSlots">100</span>
+                        </div>
+                        <div class="waiting-row">
+                            <span class="waiting-label">已報名人數</span>
+                            <span class="waiting-value" id="completedCount">0</span>
+                        </div>
+                        <div class="waiting-row">
+                            <span class="waiting-label">剩餘名額</span>
+                            <span class="waiting-value" id="remainingSlots">100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="joinBtn" onclick="joinQueue()">
+                    立即取籌
+                </button>
+                <div class="footer-text">
+                    取籌後請勿關閉此頁面<br>
+                    輪到你時會自動跳轉報名表單
+                </div>
+            </div>
+
+            <!-- 排隊中畫面 -->
+            <div id="waitingScreen" class="hidden">
+                <div class="ticket-card">
+                    <div class="ticket-label">📌 你的籌號</div>
+                    <div class="ticket-number" id="ticketNo">-</div>
+                    <button class="copy-btn" onclick="copyTicketNo()">📋 複製籌號</button>
+                </div>
+
+                <div class="status-card">
+                    <div style="text-align: center;">
+                        <span class="status-badge status-waiting" id="statusBadge">⏳ 排隊中</span>
+                    </div>
+
+                    <div class="position-display">
+                        <div class="position-number" id="position">-</div>
+                        <div class="position-label">目前位置</div>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                    </div>
+
+                    <div class="waiting-info">
+                        <div class="waiting-row">
+                            <span class="waiting-label">👥 前面人數</span>
+                            <span class="waiting-value" id="waitingCount">-</span>
+                        </div>
+                        <div class="waiting-row">
+                            <span class="waiting-label">⏱️ 預計等待</span>
+                            <span class="waiting-value" id="estimatedTime">-</span>
+                        </div>
+                        <div class="waiting-row">
+                            <span class="waiting-label">✅ 剩餘名額</span>
+                            <span class="waiting-value" id="remainingSlotsWaiting">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" onclick="resetAndRejoin()">
+                    🔄 重新取籌
+                </button>
+                <div class="footer-text">
+                    頁面會自動更新，請勿關閉<br>
+                    輪到你時會自動跳轉
+                </div>
+            </div>
+
+            <!-- 被叫號準備跳轉畫面 -->
+            <div id="callingScreen" class="hidden">
+                <div class="ticket-card">
+                    <div class="ticket-label">🎉 輪到你了！</div>
+                    <div class="ticket-number" id="callingTicketNo">-</div>
+                </div>
+
+                <div class="status-card" style="text-align: center;">
+                    <span class="status-badge status-calling">🔔 請立即報名</span>
+                    <div id="countdownTimer" style="font-size: 32px; font-weight: bold; margin: 16px 0; color: #0284c7;">
+                        05:00
+                    </div>
+                    <p style="color: #666; font-size: 14px;">
+                        正在跳轉報名表單...
+                    </p>
+                </div>
+            </div>
+
+            <!-- 已完成畫面 -->
+            <div id="completedScreen" class="hidden">
+                <div class="ticket-card">
+                    <div class="ticket-label">✅ 報名成功！</div>
+                    <div style="font-size: 48px; margin: 16px 0;">🎉</div>
+                    <p>你的報名已成功提交</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 8px;" id="completedTicketNo"></p>
+                </div>
+                <button class="btn btn-secondary" onclick="location.reload()">
+                    🏠 返回首頁
+                </button>
+            </div>
+
+            <!-- 錯誤/過期畫面 -->
+            <div id="expiredScreen" class="hidden">
+                <div class="ticket-card">
+                    <div class="ticket-label">⏰ 操作已過期</div>
+                    <div style="font-size: 48px; margin: 16px 0;">😢</div>
+                    <p id="expiredMessage">未能在時限內完成報名</p>
+                </div>
+                <button class="btn btn-primary" onclick="resetAndRejoin()">
+                    🔄 重新排隊
+                </button>
+            </div>
+
+            <div id="message" class="hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 設定 ==========
+        const API_BASE = '/api';  // 你的 API 路徑，可改為完整網址
+        let pollInterval = null;
+        let countdownInterval = null;
+
+        // 從 localStorage 讀取籌號
+        let currentTicketNo = localStorage.getItem('ticket_no') || null;
+
+        // ========== 頁面初始化 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            checkInitialState();
+        });
+
+        function checkInitialState() {
+            if (currentTicketNo) {
+                // 已有籌號，檢查狀態
+                checkStatus(currentTicketNo);
+            } else {
+                // 冇籌號，顯示取籌畫面
+                showScreen('join');
+                loadEventInfo();
+            }
+        }
+
+        // ========== API 呼叫 ==========
+        async function joinQueue() {
+            showMessage('正在取籌...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/queue.php?action=join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'user_id=guest_' + Date.now()
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentTicketNo = data.ticket_no;
+                    localStorage.setItem('ticket_no', currentTicketNo);
+                    localStorage.setItem('ticket_enter_time', Date.now());
+                    
+                    showMessage('取籌成功！', 'success');
+                    startPolling();
+                } else {
+                    showMessage(data.error || '取籌失敗，請稍後再試', 'error');
+                }
+            } catch (error) {
+                console.error('取籌錯誤:', error);
+                showMessage('網絡錯誤，請檢查連線', 'error');
+            }
+        }
+
+        async function checkStatus(ticketNo) {
+            try {
+                const response = await fetch(`${API_BASE}/queue.php?action=status&ticket_no=${ticketNo}`);
+                const data = await response.json();
+                
+                console.log('狀態查詢:', data);
+                
+                // 處理各種狀態
+                if (data.status === 'completed') {
+                    // 報名成功
+                    stopPolling();
+                    localStorage.removeItem('ticket_no');
+                    showScreen('completed');
+                    document.getElementById('completedTicketNo').innerText = `籌號：${ticketNo}`;
+                    return;
+                }
+                
+                if (data.status === 'expired') {
+                    // 已過期
+                    stopPolling();
+                    localStorage.removeItem('ticket_no');
+                    showScreen('expired');
+                    document.getElementById('expiredMessage').innerText = data.message || '未能在時限內完成報名，請重新排隊';
+                    return;
+                }
+                
+                if (data.error) {
+                    // 籌號不存在
+                    if (data.error.includes('不存在')) {
+                        localStorage.removeItem('ticket_no');
+                        showScreen('join');
+                        showMessage(data.error, 'error');
+                    }
+                    return;
+                }
+                
+                // 檢查是否被叫號
+                if (data.is_called) {
+                    // 輪到了！獲取 Token 並跳轉
+                    await handleCalled(ticketNo);
+                    return;
+                }
+                
+                // 排隊中，更新 UI
+                if (data.status === 'waiting') {
+                    showScreen('waiting');
+                    updateWaitingUI(data);
+                }
+                
+            } catch (error) {
+                console.error('狀態查詢錯誤:', error);
+            }
+        }
+
+        async function handleCalled(ticketNo) {
+            // 停止輪詢（避免重複觸發）
+            stopPolling();
+            
+            try {
+                // 獲取 Token
+                const tokenResponse = await fetch(`${API_BASE}/queue.php?action=token&ticket_no=${ticketNo}`);
+                const tokenData = await tokenResponse.json();
+                
+                if (tokenData.success) {
+                    // 儲存 Token
+                    localStorage.setItem('registration_token', tokenData.token);
+                    localStorage.setItem('token_expire', Date.now() + (tokenData.expire_seconds * 1000));
+                    
+                    // 顯示叫號畫面並開始倒數
+                    showScreen('calling');
+                    document.getElementById('callingTicketNo').innerText = ticketNo;
+                    startCountdown(tokenData.expire_seconds, ticketNo);
+                    
+                    // 3 秒後跳轉報名頁面
+                    setTimeout(() => {
+                        window.location.href = `/register.html?token=${tokenData.token}&ticket_no=${ticketNo}`;
+                    }, 3000);
+                } else {
+                    showMessage(tokenData.error || '獲取 Token 失敗', 'error');
+                    // 重新開始輪詢
+                    startPolling();
+                }
+            } catch (error) {
+                console.error('獲取 Token 錯誤:', error);
+                showMessage('系統錯誤，請稍後再試', 'error');
+                startPolling();
+            }
+        }
+
+        // ========== UI 更新 ==========
+        function updateWaitingUI(data) {
+            document.getElementById('ticketNo').innerText = data.ticket_no;
+            document.getElementById('position').innerText = data.position;
+            document.getElementById('waitingCount').innerText = data.waiting_count;
+            
+            // 預計等待時間（假設每人 30 秒）
+            const estimatedSeconds = (data.position || 0) * 30;
+            const minutes = Math.floor(estimatedSeconds / 60);
+            const seconds = estimatedSeconds % 60;
+            document.getElementById('estimatedTime').innerText = 
+                minutes > 0 ? `${minutes} 分 ${seconds} 秒` : `${seconds} 秒`;
+            
+            // 進度條（假設總排隊人數 = 位置 + 前面人數）
+            const total = (data.position || 1) + (data.waiting_count || 0);
+            const progress = ((total - (data.position || 1)) / total) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            
+            // 剩餘名額（可另外 API 獲取）
+            getRemainingSlots().then(slots => {
+                document.getElementById('remainingSlotsWaiting').innerText = slots;
+            });
+        }
+
+        async function getRemainingSlots() {
+            try {
+                const response = await fetch(`${API_BASE}/event_info.php`);
+                const data = await response.json();
+                return data.remaining_slots || '-';
+            } catch (error) {
+                return '-';
+            }
+        }
+
+        async function loadEventInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/event_info.php`);
+                const data = await response.json();
+                document.getElementById('totalSlots').innerText = data.total_slots || '-';
+                document.getElementById('completedCount').innerText = data.completed_count || '-';
+                document.getElementById('remainingSlots').innerText = data.remaining_slots || '-';
+            } catch (error) {
+                console.error('獲取活動資訊錯誤:', error);
+            }
+        }
+
+        // ========== 畫面切換 ==========
+        function showScreen(screenName) {
+            const screens = ['join', 'waiting', 'calling', 'completed', 'expired'];
+            screens.forEach(name => {
+                const el = document.getElementById(`${name}Screen`);
+                if (el) el.classList.add('hidden');
+            });
+            
+            const targetScreen = document.getElementById(`${screenName}Screen`);
+            if (targetScreen) targetScreen.classList.remove('hidden');
+        }
+
+        function showMessage(msg, type = 'info') {
+            const msgEl = document.getElementById('message');
+            msgEl.className = `message message-${type}`;
+            msgEl.innerHTML = msg;
+            msgEl.classList.remove('hidden');
+            
+            setTimeout(() => {
+                msgEl.classList.add('hidden');
+            }, 3000);
+        }
+
+        // ========== 輪詢 ==========
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            
+            // 立即檢查一次
+            if (currentTicketNo) {
+                checkStatus(currentTicketNo);
+            }
+            
+            // 每 2 秒檢查一次
+            pollInterval = setInterval(() => {
+                if (currentTicketNo) {
+                    checkStatus(currentTicketNo);
+                }
+            }, 2000);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        // ========== 倒數計時 ==========
+        function startCountdown(seconds, ticketNo) {
+            let remaining = seconds;
+            const timerEl = document.getElementById('countdownTimer');
+            
+            function updateDisplay() {
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timerEl.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            updateDisplay();
+            
+            countdownInterval = setInterval(() => {
+                remaining--;
+                updateDisplay();
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    // 超時，返回排隊
+                    localStorage.removeItem('ticket_no');
+                    showScreen('expired');
+                    document.getElementById('expiredMessage').innerText = '操作超時，請重新排隊';
+                }
+            }, 1000);
+        }
+
+        // ========== 輔助功能 ==========
+        function copyTicketNo() {
+            const ticketNo = document.getElementById('ticketNo').innerText;
+            navigator.clipboard.writeText(ticketNo);
+            showMessage('籌號已複製', 'success');
+        }
+
+        function resetAndRejoin() {
+            localStorage.removeItem('ticket_no');
+            localStorage.removeItem('registration_token');
+            currentTicketNo = null;
+            stopPolling();
+            showScreen('join');
+            loadEventInfo();
+            showMessage('請重新取籌', 'info');
+        }
+
+        // 離開頁面時停止輪詢（可選）
+        window.addEventListener('beforeunload', function() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        });
+    </script>
+</body>
+</html>
