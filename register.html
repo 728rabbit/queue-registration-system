@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>填寫報名資料</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang HK', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header .timer {
+            font-size: 36px;
+            font-weight: bold;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        .content {
+            padding: 32px 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 28px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+
+        .message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .message-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .warning {
+            background: #fff3e0;
+            color: #ed8936;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 填寫報名資料</h1>
+            <p>請在時限內完成</p>
+            <div class="timer" id="timer">05:00</div>
+        </div>
+
+        <div class="content">
+            <div class="warning" id="warningMsg">
+                ⏰ 請在時限內完成報名，超時將自動釋出名額
+            </div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>姓名 *</label>
+                    <input type="text" id="name" placeholder="請輸入中文或英文姓名" required>
+                </div>
+
+                <div class="form-group">
+                    <label>聯絡電話 *</label>
+                    <input type="tel" id="phone" placeholder="例如：91234567" required>
+                </div>
+
+                <div class="form-group">
+                    <label>電郵地址</label>
+                    <input type="email" id="email" placeholder="example@email.com">
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    確認報名
+                </button>
+            </form>
+
+            <div id="message" class="hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // 從 URL 獲取參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const ticketNo = urlParams.get('ticket_no');
+
+        let expireTime = null;
+        let countdownInterval = null;
+
+        // 驗證 Token 是否存在
+        if (!token) {
+            showError('缺少報名憑證，請重新排隊');
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        // 從 localStorage 或 URL 獲取過期時間
+        const storedExpire = localStorage.getItem('token_expire');
+        if (storedExpire) {
+            expireTime = parseInt(storedExpire);
+        } else {
+            // 預設 5 分鐘
+            expireTime = Date.now() + 5 * 60 * 1000;
+        }
+
+        // 開始倒數
+        startCountdown();
+
+        // 表單提交
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const email = document.getElementById('email').value.trim();
+
+            if (!name) {
+                showError('請填寫姓名');
+                return;
+            }
+            if (!phone) {
+                showError('請填寫電話號碼');
+                return;
+            }
+
+            // 檢查是否過期
+            if (Date.now() > expireTime) {
+                showError('操作已過期，請重新排隊');
+                window.location.href = '/queue.html';
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch('/api/register.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        token: token,
+                        name: name,
+                        phone: phone,
+                        email: email
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess('報名成功！正在跳轉...');
+                    // 清除本地儲存
+                    localStorage.removeItem('ticket_no');
+                    localStorage.removeItem('registration_token');
+                    localStorage.removeItem('token_expire');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/queue.html';
+                    }, 2000);
+                } else {
+                    showError(data.message || '報名失敗，請稍後再試');
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('報名錯誤:', error);
+                showError('網絡錯誤，請檢查連線');
+                setLoading(false);
+            }
+        });
+
+        // 倒數函數
+        function startCountdown() {
+            const timerEl = document.getElementById('timer');
+            
+            function updateDisplay() {
+                const remaining = Math.max(0, expireTime - Date.now());
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                timerEl.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    timerEl.innerText = '00:00';
+                    showError('操作已過期，即將返回排隊頁面');
+                    document.getElementById('submitBtn').disabled = true;
+                    setTimeout(() => {
+                        window.location.href = '/queue.html';
+                    }, 3000);
+                }
+            }
+            
+            updateDisplay();
+            countdownInterval = setInterval(updateDisplay, 1000);
+        }
+
+        function showError(msg) {
+            const msgEl = document.getElementById('message');
+            msgEl.className = 'message message-error';
+            msgEl.innerHTML = msg;
+            msgEl.classList.remove('hidden');
+        }
+
+        function showSuccess(msg) {
+            const msgEl = document.getElementById('message');
+            msgEl.className = 'message message-success';
+            msgEl.innerHTML = msg;
+            msgEl.classList.remove('hidden');
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('submitBtn');
+            if (loading) {
+                btn.disabled = true;
+                btn.innerHTML = '提交中...';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '確認報名';
+            }
+        }
+
+        // 頁面關閉時清除倒數
+        window.addEventListener('beforeunload', function() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+        });
+    </script>
+</body>
+</html>
