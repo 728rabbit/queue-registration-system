@@ -52,6 +52,7 @@
 ##### PHP 用 Predis（唔需要 Redis 擴展）
 
     <?php
+    # composer require predis/predis
     require 'vendor/autoload.php';
     use Predis\Client;
     
