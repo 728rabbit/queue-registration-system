@@ -1,4 +1,4 @@
-## 基本鍵值操作（String）
+## 1. 基本鍵值操作（String）
 
 | 操作 | 方法 | 範例 |
 | :--- | :--- | :--- |
@@ -21,7 +21,8 @@
 
 ---
 
-## 有序集合操作（Sorted Set）
+## 2. 有序集合操作（Sorted Set）
+### Sorted Set 是排隊系統最關鍵的資料結構！每個元素皆有「分數 (score)」，按分數排序。
 
 | 操作 | 方法 | 說明 |
 | :--- | :--- | :--- |
@@ -41,3 +42,21 @@
 | 按分數移除 | `zremrangebyscore($key, $min, $max)` | 移除分數區間 |
 | 交集 | `zinterstore($destination, $keys)` | 多個集合交集 |
 | 聯集 | `zunionstore($destination, $keys)` | 多個集合聯集 |
+
+
+## 3. Hash 操作
+
+### Hash 適合儲存物件的多個欄位，例如籌號的詳細資料。
+
+| 操作 | 方法 | 範例 |
+| :--- | :--- | :--- |
+| 設定單一欄位 | `hset($key, $field, $value)` | `$redis->hset('ticket:001', 'status', 'waiting');` |
+| 取得單一欄位 | `hget($key, $field)` | `$status = $redis->hget('ticket:001', 'status');` |
+| 設定多個欄位 | `hmset($key, $array)` | `$redis->hmset('ticket:001', ['status'=>'waiting', 'time'=>time()]);` |
+| 取得所有欄位 | `hgetall($key)` | `$data = $redis->hgetall('ticket:001');` |
+| 取得所有欄位名 | `hkeys($key)` | `$fields = $redis->hkeys('ticket:001');` |
+| 取得所有值 | `hvals($key)` | `$values = $redis->hvals('ticket:001');` |
+| 檢查欄位存在 | `hexists($key, $field)` | `if ($redis->hexists('ticket:001', 'status')) { ... }` |
+| 增加數字欄位 | `hincrby($key, $field, $amount)` | `$redis->hincrby('stats', 'login_count', 1);` |
+| 刪除欄位 | `hdel($key, $field)` | `$redis->hdel('ticket:001', 'temp_data');` |
+| 取得所有欄位數 | `hlen($key)` | `$count = $redis->hlen('ticket:001');` |
