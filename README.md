@@ -17,3 +17,14 @@ Redis（即時層） MySQL（儲存層）
 ├── 鎖定名額 └── 活動設定
 ├── 叫號狀態
 └── 自動過期（TTL）
+
+## 快速開始
+
+### 1. 安裝 Redis Cloud（免費）
+
+參考 [Redis Cloud 設定教學](docs/redis-cloud-setup.md)
+
+### 2. 建立 MySQL 資料表
+
+```bash
+mysql -u root -p < mysql/schema.sql
